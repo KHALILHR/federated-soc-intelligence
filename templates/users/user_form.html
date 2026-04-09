@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}{{ action }} User{% endblock %}
+{% block page_title %}{{ action }} User{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" style="margin-bottom:1.5rem;">
+    <ol class="breadcrumb" style="background:transparent;padding:0;margin:0;font-size:0.8rem;">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' %}" style="color:var(--text-muted);">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'users:admin_panel' %}" style="color:var(--text-muted);">SOC Admin</a></li>
+        <li class="breadcrumb-item active" style="color:var(--text-primary);">{{ action }} User</li>
+    </ol>
+</nav>
+
+<div style="max-width:560px;">
+    <div class="card-soc">
+        <div class="card-header-soc">
+            <div class="card-title">
+                <i class="bi bi-person-fill"></i>
+                {% if action == 'Edit' %}Edit: {{ target_user.username }}{% else %}New User{% endif %}
+            </div>
+            {% if manager_org %}
+            <span style="font-size:0.75rem;color:var(--text-muted);">
+                <i class="bi bi-building"></i> {{ manager_org.name }}
+            </span>
+            {% endif %}
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:0.8rem;color:var(--accent-red);">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}">Username <span style="color:var(--accent-red)">*</span></label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                <div style="color:var(--accent-red);font-size:0.75rem;margin-top:4px;">{{ form.username.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}">Email</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <div style="color:var(--accent-red);font-size:0.75rem;margin-top:4px;">{{ form.email.errors }}</div>
+                {% endif %}
+            </div>
+
+            {% if action == 'Create' %}
+            <div class="form-group">
+                <label for="{{ form.password.id_for_label }}">Password <span style="color:var(--accent-red)">*</span></label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                <div style="color:var(--accent-red);font-size:0.75rem;margin-top:4px;">{{ form.password.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.confirm_password.id_for_label }}">Confirm Password <span style="color:var(--accent-red)">*</span></label>
+                {{ form.confirm_password }}
+                {% if form.confirm_password.errors %}
+                <div style="color:var(--accent-red);font-size:0.75rem;margin-top:4px;">{{ form.confirm_password.errors }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.role.id_for_label }}">Role <span style="color:var(--accent-red)">*</span></label>
+                {{ form.role }}
+                {% if form.role.errors %}
+                <div style="color:var(--accent-red);font-size:0.75rem;margin-top:4px;">{{ form.role.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.clearance_level.id_for_label }}">Clearance Level (1–5) <span style="color:var(--accent-red)">*</span></label>
+                {{ form.clearance_level }}
+                {% if form.clearance_level.errors %}
+                <div style="color:var(--accent-red);font-size:0.75rem;margin-top:4px;">{{ form.clearance_level.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group" style="display:flex;align-items:center;gap:10px;padding:10px 0;">
+                {{ form.mfa_enabled }}
+                <label for="{{ form.mfa_enabled.id_for_label }}" style="margin:0;cursor:pointer;">Enable MFA</label>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:1.5rem;">
+                <button type="submit" class="btn-soc" style="flex:1;justify-content:center;">
+                    <i class="bi bi-check-lg"></i> {{ action }} User
+                </button>
+                <a href="{% url 'users:admin_panel' %}" class="btn-soc btn-soc-danger" style="flex:1;justify-content:center;text-decoration:none;display:flex;align-items:center;">
+                    <i class="bi bi-x-lg"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

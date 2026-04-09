@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}SOC Admin Panel{% endblock %}
+{% block page_title %}SOC Manager Admin Panel{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" style="margin-bottom:1.5rem;">
+    <ol class="breadcrumb" style="background:transparent;padding:0;margin:0;font-size:0.8rem;">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' %}" style="color:var(--text-muted);">Dashboard</a></li>
+        <li class="breadcrumb-item active" style="color:var(--text-primary);">
+            SOC Admin
+            {% if manager_org %} &mdash; <span style="color:var(--accent-blue);">{{ manager_org.name }}</span>{% endif %}
+        </li>
+    </ol>
+</nav>
+
+<!-- Organizations Section -->
+<div class="card-soc" style="margin-bottom:2rem;">
+    <div class="card-header-soc">
+        <div class="card-title"><i class="bi bi-building"></i> Organizations</div>
+        <a href="{% url 'users:org_create' %}" class="btn-soc" style="font-size:0.8rem;">
+            <i class="bi bi-plus-lg"></i> New Organization
+        </a>
+    </div>
+
+    {% if organizations %}
+    <div style="overflow-x:auto;">
+        <table class="table-soc">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Domain</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for org in organizations %}
+                <tr {% if manager_org and org.id == manager_org.id %}style="background:rgba(59,130,246,0.06);"{% endif %}>
+                    <td>
+                        <span style="font-weight:500;">{{ org.name }}</span>
+                        {% if manager_org and org.id == manager_org.id %}
+                        <span class="badge-soc badge-type" style="margin-left:6px;font-size:0.65rem;">Your Org</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted);">{{ org.domain|default:"—" }}</td>
+                    <td>
+                        {% if org.is_active %}
+                        <span class="badge-soc badge-critical" style="background:rgba(16,185,129,0.15);color:#10b981;">Active</span>
+                        {% else %}
+                        <span class="badge-soc" style="background:rgba(239,68,68,0.15);color:#ef4444;">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:0.8rem;color:var(--text-muted);">{{ org.joined_at|date:"Y-m-d" }}</td>
+                    <td>
+                        <div style="display:flex;gap:6px;">
+                            <a href="{% url 'users:org_edit' org.id %}" class="btn-soc" style="padding:4px 10px;font-size:0.75rem;">
+                                <i class="bi bi-pencil-fill"></i> Edit
+                            </a>
+                            <form method="post" action="{% url 'users:org_delete' org.id %}" onsubmit="return confirm('Delete organization {{ org.name }}?');" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-soc btn-soc-danger" style="padding:4px 10px;font-size:0.75rem;">
+                                    <i class="bi bi-trash-fill"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-building"></i>
+        <p>No organizations yet.</p>
+        <a href="{% url 'users:org_create' %}" class="btn-soc">Create First Organization</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Users Section -->
+<div class="card-soc">
+    <div class="card-header-soc">
+        <div class="card-title">
+            <i class="bi bi-people-fill"></i>
+            Users
+            {% if manager_org %}<span style="color:var(--text-muted);font-size:0.8rem;margin-left:6px;">in {{ manager_org.name }}</span>{% endif %}
+        </div>
+        {% if manager_org %}
+        <a href="{% url 'users:user_create' %}" class="btn-soc" style="font-size:0.8rem;">
+            <i class="bi bi-person-plus-fill"></i> Add User
+        </a>
+        {% endif %}
+    </div>
+
+    {% if manager_org %}
+        {% if org_users %}
+        <div style="overflow-x:auto;">
+            <table class="table-soc">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Clearance</th>
+                        <th>MFA</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in org_users %}
+                    <tr>
+                        <td style="font-weight:500;">{{ u.username }}</td>
+                        <td style="font-size:0.8rem;color:var(--text-muted);">{{ u.email|default:"—" }}</td>
+                        <td><span class="badge-soc badge-type">{{ u.get_role_display }}</span></td>
+                        <td style="font-family:var(--font-mono);text-align:center;">
+                            <span class="badge-soc" style="background:rgba(139,92,246,0.15);color:#8b5cf6;">L{{ u.clearance_level }}</span>
+                        </td>
+                        <td>
+                            {% if u.mfa_enabled %}
+                            <i class="bi bi-shield-check-fill" style="color:#10b981;" title="MFA Enabled"></i>
+                            {% else %}
+                            <i class="bi bi-shield-x" style="color:var(--text-muted);" title="MFA Disabled"></i>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display:flex;gap:6px;">
+                                <a href="{% url 'users:user_edit' u.id %}" class="btn-soc" style="padding:4px 10px;font-size:0.75rem;">
+                                    <i class="bi bi-pencil-fill"></i> Edit
+                                </a>
+                                <form method="post" action="{% url 'users:user_delete' u.id %}" onsubmit="return confirm('Delete user {{ u.username }}?');" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-soc btn-soc-danger" style="padding:4px 10px;font-size:0.75rem;">
+                                        <i class="bi bi-person-x-fill"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-people"></i>
+            <p>No users in your organization yet.</p>
+            <a href="{% url 'users:user_create' %}" class="btn-soc">Add First User</a>
+        </div>
+        {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-exclamation-triangle-fill" style="color:var(--accent-orange);"></i>
+        <p>Your account is not assigned to an organization.<br>
+           Create an organization and ask a superadmin to assign you to it.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

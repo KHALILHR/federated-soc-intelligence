@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{{ action }} Organization{% endblock %}
+{% block page_title %}{{ action }} Organization{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" style="margin-bottom:1.5rem;">
+    <ol class="breadcrumb" style="background:transparent;padding:0;margin:0;font-size:0.8rem;">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:index' %}" style="color:var(--text-muted);">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'users:admin_panel' %}" style="color:var(--text-muted);">SOC Admin</a></li>
+        <li class="breadcrumb-item active" style="color:var(--text-primary);">{{ action }} Organization</li>
+    </ol>
+</nav>
+
+<div style="max-width:560px;">
+    <div class="card-soc">
+        <div class="card-header-soc">
+            <div class="card-title">
+                <i class="bi bi-building"></i>
+                {% if action == 'Edit' %}Edit: {{ org.name }}{% else %}New Organization{% endif %}
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:0.8rem;color:var(--accent-red);">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.name.id_for_label }}">Organization Name <span style="color:var(--accent-red)">*</span></label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <div style="color:var(--accent-red);font-size:0.75rem;margin-top:4px;">{{ form.name.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.domain.id_for_label }}">Domain</label>
+                {{ form.domain }}
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">e.g. soc-paris.fr</div>
+                {% if form.domain.errors %}
+                <div style="color:var(--accent-red);font-size:0.75rem;margin-top:4px;">{{ form.domain.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group" style="display:flex;align-items:center;gap:10px;padding:10px 0;">
+                {{ form.is_active }}
+                <label for="{{ form.is_active.id_for_label }}" style="margin:0;cursor:pointer;">Active</label>
+                {% if form.is_active.errors %}
+                <div style="color:var(--accent-red);font-size:0.75rem;">{{ form.is_active.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:1.5rem;">
+                <button type="submit" class="btn-soc" style="flex:1;justify-content:center;">
+                    <i class="bi bi-check-lg"></i> {{ action }} Organization
+                </button>
+                <a href="{% url 'users:admin_panel' %}" class="btn-soc btn-soc-danger" style="flex:1;justify-content:center;text-decoration:none;display:flex;align-items:center;">
+                    <i class="bi bi-x-lg"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
