@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Threat Intelligence Hub{% endblock %}
+{% block page_title %}Threat Intelligence Hub{% endblock %}
+
+{% block content %}
+<!-- Search & Filters -->
+<div class="card-soc" style="margin-bottom:24px;">
+    <form method="get" action="" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="search-bar" style="flex:2;min-width:250px;">
+            <i class="bi bi-search"></i>
+            <input type="text" name="q" class="form-control-soc" placeholder="Search IOCs — IP, domain, hash, CVE..." value="{{ search_query }}" id="ioc-search">
+        </div>
+        <div style="flex:1;min-width:150px;">
+            <label style="font-size:0.65rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Type</label>
+            <select name="type" class="form-control-soc" id="ioc-type-filter" style="width:100%;">
+                <option value="">All Types</option>
+                {% for value, label in ioc_types %}
+                <option value="{{ value }}" {% if ioc_type_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="flex:1;min-width:150px;">
+            <label style="font-size:0.65rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Severity</label>
+            <select name="severity" class="form-control-soc" id="ioc-severity-filter" style="width:100%;">
+                <option value="">All Severities</option>
+                <option value="critical" {% if severity_filter == 'critical' %}selected{% endif %}>Critical</option>
+                <option value="high" {% if severity_filter == 'high' %}selected{% endif %}>High</option>
+                <option value="medium" {% if severity_filter == 'medium' %}selected{% endif %}>Medium</option>
+                <option value="low" {% if severity_filter == 'low' %}selected{% endif %}>Low</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-soc btn-soc-primary" id="btn-search-ioc">
+            <i class="bi bi-funnel-fill"></i> Filter
+        </button>
+    </form>
+</div>
+
+<!-- IOC Table -->
+<div class="card-soc">
+    <div class="card-header-soc">
+        <div class="card-title"><i class="bi bi-bug-fill"></i> Indicators of Compromise</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">
+            {% if use_demo %}Showing demo data{% else %}{{ iocs|length }} results{% endif %}
+        </div>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="table-soc" id="ioc-table">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Indicator Value</th>
+                    <th>Enrichment Score</th>
+                    <th>Confidence</th>
+                    <th>Severity</th>
+                    <th>Source Feeds</th>
+                    <th>Tags</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if use_demo %}
+                    {% for ioc in demo_iocs %}
+                    <tr>
+                        <td><span class="badge-soc badge-type">{{ ioc.type|upper }}</span></td>
+                        <td class="mono">{{ ioc.value }}</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div class="budget-bar" style="width:80px;">
+                                    <div class="budget-bar-fill" style="width:{{ ioc.score|floatformat:0 }}00%;"></div>
+                                </div>
+                                <span class="mono" style="{% if ioc.score >= 0.8 %}color:var(--severity-critical){% elif ioc.score >= 0.6 %}color:var(--severity-high){% else %}color:var(--severity-medium){% endif %}">{{ ioc.score }}</span>
+                            </div>
+                        </td>
+                        <td class="mono">{{ ioc.confidence }}</td>
+                        <td><span class="badge-soc badge-{{ ioc.severity }}">{{ ioc.severity|upper }}</span></td>
+                        <td style="font-size:0.75rem;">{{ ioc.feeds|join:", " }}</td>
+                        <td>
+                            {% for tag in ioc.tags %}
+                            <span style="display:inline-block;padding:2px 8px;background:var(--bg-input);border:1px solid var(--border-color);border-radius:12px;font-size:0.65rem;color:var(--text-secondary);margin:1px;">{{ tag }}</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    {% for ioc in iocs %}
+                    <tr>
+                        <td><span class="badge-soc badge-type">{{ ioc.ioc_type|upper }}</span></td>
+                        <td class="mono">{{ ioc.value }}</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div class="budget-bar" style="width:80px;">
+                                    <div class="budget-bar-fill" style="width:{{ ioc.enrichment_score|floatformat:0 }}00%;"></div>
+                                </div>
+                                <span class="mono">{{ ioc.enrichment_score }}</span>
+                            </div>
+                        </td>
+                        <td class="mono">{{ ioc.confidence }}</td>
+                        <td><span class="badge-soc badge-{{ ioc.severity }}">{{ ioc.severity|upper }}</span></td>
+                        <td style="font-size:0.75rem;">{{ ioc.source_feeds|join:", " }}</td>
+                        <td>
+                            {% for tag in ioc.tags %}
+                            <span style="display:inline-block;padding:2px 8px;background:var(--bg-input);border:1px solid var(--border-color);border-radius:12px;font-size:0.65rem;color:var(--text-secondary);margin:1px;">{{ tag }}</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Detection Rules -->
+<div class="card-soc" style="margin-top:24px;">
+    <div class="card-header-soc">
+        <div class="card-title"><i class="bi bi-shield-exclamation"></i> Active Detection Rules</div>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="table-soc">
+            <thead>
+                <tr><th>Rule Name</th><th>Type</th><th>Severity</th><th>Hits</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                {% for rule in rules %}
+                <tr>
+                    <td style="font-weight:500;">{{ rule.name }}</td>
+                    <td><span class="badge-soc badge-type">{{ rule.get_rule_type_display }}</span></td>
+                    <td><span class="badge-soc badge-{{ rule.severity }}">{{ rule.severity|upper }}</span></td>
+                    <td class="mono">{{ rule.hits }}</td>
+                    <td><span class="badge-soc {% if rule.enabled %}badge-online{% else %}badge-offline{% endif %}">{% if rule.enabled %}Active{% else %}Disabled{% endif %}</span></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td style="font-weight:500;">Lateral Movement via PsExec</td>
+                    <td><span class="badge-soc badge-type">Sigma Rule</span></td>
+                    <td><span class="badge-soc badge-critical">CRITICAL</span></td>
+                    <td class="mono">342</td>
+                    <td><span class="badge-soc badge-online">Active</span></td>
+                </tr>
+                <tr>
+                    <td style="font-weight:500;">Cobalt Strike Beacon Detection</td>
+                    <td><span class="badge-soc badge-type">YARA Rule</span></td>
+                    <td><span class="badge-soc badge-critical">CRITICAL</span></td>
+                    <td class="mono">89</td>
+                    <td><span class="badge-soc badge-online">Active</span></td>
+                </tr>
+                <tr>
+                    <td style="font-weight:500;">DGA Domain Classifier</td>
+                    <td><span class="badge-soc badge-type">Custom ML Rule</span></td>
+                    <td><span class="badge-soc badge-high">HIGH</span></td>
+                    <td class="mono">1,247</td>
+                    <td><span class="badge-soc badge-online">Active</span></td>
+                </tr>
+                <tr>
+                    <td style="font-weight:500;">SSH Brute Force Detector</td>
+                    <td><span class="badge-soc badge-type">Sigma Rule</span></td>
+                    <td><span class="badge-soc badge-high">HIGH</span></td>
+                    <td class="mono">567</td>
+                    <td><span class="badge-soc badge-online">Active</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

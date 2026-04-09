@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+{% block page_title %}User Profile{% endblock %}
+
+{% block content %}
+<div class="grid-2" style="max-width:900px;">
+    <!-- Profile Card -->
+    <div class="card-soc">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <i class="bi bi-person-fill"></i>
+            </div>
+            <div class="profile-info">
+                <h2>{{ user.username }}</h2>
+                <div class="profile-role">{{ user.get_role_display|default:"Security Analyst" }}</div>
+            </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                <span style="color:var(--text-muted);font-size:0.8rem;">Email</span>
+                <span style="font-size:0.85rem;">{{ user.email|default:"—" }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                <span style="color:var(--text-muted);font-size:0.8rem;">Role</span>
+                <span class="badge-soc badge-type">{{ user.get_role_display|default:"Analyst" }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                <span style="color:var(--text-muted);font-size:0.8rem;">Organization</span>
+                <span style="font-size:0.85rem;">{{ user.organization|default:"—" }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                <span style="color:var(--text-muted);font-size:0.8rem;">Clearance Level</span>
+                <span style="font-size:0.85rem;font-family:var(--font-mono);">{{ user.clearance_level|default:"1" }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                <span style="color:var(--text-muted);font-size:0.8rem;">MFA</span>
+                <span style="font-size:0.85rem;">{% if user.mfa_enabled %}<span style="color:var(--accent-green)">Enabled</span>{% else %}<span style="color:var(--accent-orange)">Disabled</span>{% endif %}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                <span style="color:var(--text-muted);font-size:0.8rem;">Assigned Node</span>
+                <span style="font-size:0.85rem;">{{ user.assigned_node|default:"—" }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                <span style="color:var(--text-muted);font-size:0.8rem;">Joined</span>
+                <span style="font-size:0.85rem;">{{ user.date_joined|date:"Y-m-d" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+        <div class="card-soc">
+            <div class="card-header-soc">
+                <div class="card-title"><i class="bi bi-gear-fill"></i> Quick Actions</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <a href="/admin/" class="btn-soc" style="width:100%;justify-content:center;">
+                    <i class="bi bi-sliders"></i> Admin Panel
+                </a>
+                <a href="{% url 'users:logout' %}" class="btn-soc btn-soc-danger" style="width:100%;justify-content:center;">
+                    <i class="bi bi-box-arrow-right"></i> Sign Out
+                </a>
+            </div>
+        </div>
+        <div class="card-soc">
+            <div class="card-header-soc">
+                <div class="card-title"><i class="bi bi-clock-history"></i> Session Info</div>
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-muted);">
+                <p>Last login: {{ user.last_login|date:"Y-m-d H:i"|default:"Never" }}</p>
+                <p style="margin-top:8px;">All sessions are monitored and logged by the SOC platform security module.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Global Dashboard{% endblock %}
+{% block page_title %}Global Dashboard{% endblock %}
+
+{% block content %}
+<!-- Metric Cards -->
+<div class="metric-grid">
+    <div class="metric-card accent-blue">
+        <div class="metric-label">Active Nodes</div>
+        <div class="metric-value text-accent-blue" data-target="{{ metrics.active_nodes }}">0</div>
+        <div class="metric-sub">Federated participants</div>
+        <div class="metric-icon"><i class="bi bi-diagram-3-fill"></i></div>
+    </div>
+    <div class="metric-card accent-green">
+        <div class="metric-label">Logs Ingested</div>
+        <div class="metric-value text-accent-green" data-target="{{ metrics.total_logs }}">0</div>
+        <div class="metric-sub">Total SIEM events</div>
+        <div class="metric-icon"><i class="bi bi-journal-text"></i></div>
+    </div>
+    <div class="metric-card accent-red">
+        <div class="metric-label">Threats Detected</div>
+        <div class="metric-value text-accent-red" data-target="{{ metrics.threats_detected }}">0</div>
+        <div class="metric-sub">Active threat signals</div>
+        <div class="metric-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+    </div>
+    <div class="metric-card accent-purple">
+        <div class="metric-label">Model Accuracy</div>
+        <div class="metric-value text-accent-purple" data-target="{{ metrics.global_accuracy }}" data-float="true" data-suffix="%">0</div>
+        <div class="metric-sub">Global federated model</div>
+        <div class="metric-icon"><i class="bi bi-bullseye"></i></div>
+    </div>
+    <div class="metric-card accent-orange">
+        <div class="metric-label">Avg Epsilon (ε)</div>
+        <div class="metric-value text-accent-orange" data-target="{{ metrics.avg_epsilon }}" data-float="true">0</div>
+        <div class="metric-sub">Privacy budget consumed</div>
+        <div class="metric-icon"><i class="bi bi-shield-lock-fill"></i></div>
+    </div>
+    <div class="metric-card accent-yellow">
+        <div class="metric-label">Inference Latency</div>
+        <div class="metric-value" data-target="{{ metrics.avg_latency }}" data-float="true" data-suffix=" ms">0</div>
+        <div class="metric-sub">Avg scoring time</div>
+        <div class="metric-icon"><i class="bi bi-lightning-fill"></i></div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="grid-2" style="margin-bottom: 24px;">
+    <!-- Accuracy vs Privacy Budget -->
+    <div class="card-soc">
+        <div class="card-header-soc">
+            <div class="card-title"><i class="bi bi-graph-up"></i> Model Accuracy vs Privacy Budget</div>
+        </div>
+        <div class="chart-container">
+            <canvas id="chart-accuracy-privacy"></canvas>
+        </div>
+    </div>
+
+    <!-- Federated Node Map -->
+    <div class="card-soc">
+        <div class="card-header-soc">
+            <div class="card-title"><i class="bi bi-globe-americas"></i> Federated Node Network</div>
+            <div style="display:flex;gap:12px;align-items:center;">
+                <span class="badge-soc badge-online"><i class="bi bi-circle-fill" style="font-size:6px"></i> Online</span>
+                <span class="badge-soc badge-training"><i class="bi bi-circle-fill" style="font-size:6px"></i> Training</span>
+                <span class="badge-soc badge-offline"><i class="bi bi-circle-fill" style="font-size:6px"></i> Offline</span>
+            </div>
+        </div>
+        <div class="node-map" id="node-map" style="height:300px;"></div>
+    </div>
+</div>
+
+<!-- Bottom Row -->
+<div class="grid-2-1">
+    <!-- Training Rounds -->
+    <div class="card-soc">
+        <div class="card-header-soc">
+            <div class="card-title"><i class="bi bi-arrow-repeat"></i> Recent Training Rounds</div>
+            <a href="{% url 'federated:overview' %}" class="btn-soc" style="font-size:0.7rem;">View All</a>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="table-soc">
+                <thead>
+                    <tr>
+                        <th>Round</th>
+                        <th>Status</th>
+                        <th>Global Accuracy</th>
+                        <th>Loss</th>
+                        <th>Strategy</th>
+                        <th>Nodes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rounds %}
+                    <tr>
+                        <td class="mono">R{{ r.round_number }}</td>
+                        <td><span class="badge-soc badge-{{ r.status }}">{{ r.get_status_display }}</span></td>
+                        <td class="mono">{{ r.global_accuracy|default_if_none:"—" }}</td>
+                        <td class="mono">{{ r.global_loss|default_if_none:"—" }}</td>
+                        <td>{{ r.aggregation_strategy|upper }}</td>
+                        <td>{{ r.participating_nodes.count }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td class="mono">R15</td><td><span class="badge-soc badge-online">Completed</span></td>
+                        <td class="mono">0.9432</td><td class="mono">0.0821</td><td>FEDAVG</td><td>5</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">R14</td><td><span class="badge-soc badge-online">Completed</span></td>
+                        <td class="mono">0.9387</td><td class="mono">0.0934</td><td>FEDAVG</td><td>5</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">R13</td><td><span class="badge-soc badge-online">Completed</span></td>
+                        <td class="mono">0.9301</td><td class="mono">0.1042</td><td>FEDAVG</td><td>4</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">R12</td><td><span class="badge-soc badge-online">Completed</span></td>
+                        <td class="mono">0.9244</td><td class="mono">0.1156</td><td>FEDPROX</td><td>5</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">R11</td><td><span class="badge-soc badge-training">In Progress</span></td>
+                        <td class="mono">—</td><td class="mono">—</td><td>FEDAVG</td><td>3</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Alerts Feed -->
+    <div class="card-soc">
+        <div class="card-header-soc">
+            <div class="card-title"><i class="bi bi-bell-fill"></i> Alert Feed</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;max-height:320px;overflow-y:auto;">
+            {% for alert in recent_alerts %}
+            <div class="alert-item" style="padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid {% if alert.level == 'critical' %}var(--severity-critical){% elif alert.level == 'warning' %}var(--severity-high){% else %}var(--accent-blue){% endif %};">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--text-primary);margin-bottom:2px;">{{ alert.title }}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">{{ alert.message|truncatewords:20 }}</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;">{{ alert.created_at|timesince }} ago</div>
+            </div>
+            {% empty %}
+            <div class="alert-item" style="padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid var(--severity-critical);">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--text-primary);margin-bottom:2px;">C2 Beacon Detected</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">Outbound traffic to known C2 IP 185.220.101.34 from internal host 10.0.3.42</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;">2 minutes ago</div>
+            </div>
+            <div class="alert-item" style="padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid var(--severity-high);">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--text-primary);margin-bottom:2px;">Brute Force Attempt</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">142 failed SSH login attempts from 91.219.237.101 within 5 minutes</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;">8 minutes ago</div>
+            </div>
+            <div class="alert-item" style="padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid var(--accent-blue);">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--text-primary);margin-bottom:2px;">Training Round Completed</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">Federated Round 15 completed with 94.32% global accuracy across 5 nodes</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;">15 minutes ago</div>
+            </div>
+            <div class="alert-item" style="padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid var(--severity-high);">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--text-primary);margin-bottom:2px;">Privacy Budget Warning</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">Node SOC-NewYork epsilon at 3.5/10.0 — 65% remaining</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;">22 minutes ago</div>
+            </div>
+            <div class="alert-item" style="padding:10px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid var(--severity-critical);">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--text-primary);margin-bottom:2px;">Data Exfiltration Suspected</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">Anomalous 2.3 GB transfer to external IP detected from endpoint WSK-0414</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;">34 minutes ago</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Accuracy vs Privacy Budget dual-axis chart
+    const ctx = document.getElementById('chart-accuracy-privacy');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ chart_labels|safe }},
+                datasets: [
+                    {
+                        label: 'Model Accuracy',
+                        data: {{ accuracy_data|safe }},
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.08)',
+                        fill: true,
+                        yAxisID: 'y',
+                        pointBackgroundColor: '#00ff88',
+                    },
+                    {
+                        label: 'Avg Epsilon (ε)',
+                        data: {{ privacy_data|safe }},
+                        borderColor: '#fb923c',
+                        backgroundColor: 'rgba(251, 146, 60, 0.08)',
+                        fill: true,
+                        yAxisID: 'y1',
+                        pointBackgroundColor: '#fb923c',
+                        borderDash: [5, 5],
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: 'Accuracy', color: '#00ff88' },
+                        min: 0.5,
+                        max: 1.0,
+                        ticks: { color: '#00ff88' },
+                    },
+                    y1: {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: 'Epsilon (ε)', color: '#fb923c' },
+                        min: 0,
+                        ticks: { color: '#fb923c' },
+                        grid: { drawOnChartArea: false },
+                    },
+                },
+            },
+        });
+    }
+
+    // Node map
+    const nodeData = {{ node_map_data|safe }};
+    if (nodeData && nodeData.length > 0) {
+        renderNodeMap('node-map', nodeData);
+    }
+});
+</script>
+{% endblock %}

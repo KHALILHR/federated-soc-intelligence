@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Federation Network{% endblock %}
+{% block page_title %}Federation Network{% endblock %}
+
+{% block content %}
+<!-- Action Bar -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+    <div style="font-size:0.85rem;color:var(--text-secondary);">
+        Manage federated learning rounds, monitor node status, and track differential privacy budgets.
+    </div>
+    <button class="btn-soc btn-soc-primary" id="btn-trigger-round" onclick="triggerRound()">
+        <i class="bi bi-play-circle-fill"></i> Trigger New Round
+    </button>
+</div>
+
+<div class="grid-2" style="margin-bottom:24px;">
+    <!-- Privacy Budget Chart -->
+    <div class="card-soc">
+        <div class="card-header-soc">
+            <div class="card-title"><i class="bi bi-shield-lock-fill"></i> Privacy Budget per Node</div>
+        </div>
+        <div class="chart-container" style="height:280px;">
+            <canvas id="chart-privacy-budget"></canvas>
+        </div>
+    </div>
+
+    <!-- Node Status -->
+    <div class="card-soc">
+        <div class="card-header-soc">
+            <div class="card-title"><i class="bi bi-hdd-stack-fill"></i> Node Status</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            {% for node in nodes %}
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid {% if node.status == 'online' %}var(--status-online){% elif node.status == 'training' %}var(--status-training){% elif node.status == 'syncing' %}var(--status-syncing){% else %}var(--status-offline){% endif %};">
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem;margin-bottom:2px;">{{ node.name }}</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);">{{ node.host }}:{{ node.port }} · {{ node.total_samples|default:"0" }} samples</div>
+                </div>
+                <span class="badge-soc badge-{{ node.status }}">{{ node.get_status_display }}</span>
+            </div>
+            {% empty %}
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid var(--status-online);">
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem;margin-bottom:2px;">SOC-Paris</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);">10.0.1.1:8081 · 12,400 samples</div>
+                </div>
+                <span class="badge-soc badge-online">Online</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid var(--status-online);">
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem;margin-bottom:2px;">SOC-London</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);">10.0.2.1:8081 · 9,800 samples</div>
+                </div>
+                <span class="badge-soc badge-online">Online</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid var(--status-training);">
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem;margin-bottom:2px;">SOC-NewYork</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);">10.0.3.1:8081 · 15,200 samples</div>
+                </div>
+                <span class="badge-soc badge-training">Training</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid var(--status-online);">
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem;margin-bottom:2px;">SOC-Tokyo</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);">10.0.4.1:8081 · 8,900 samples</div>
+                </div>
+                <span class="badge-soc badge-online">Online</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg-input);border-radius:var(--border-radius-sm);border-left:3px solid var(--status-offline);">
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem;margin-bottom:2px;">SOC-Sydney</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);">10.0.5.1:8081 · 6,700 samples</div>
+                </div>
+                <span class="badge-soc badge-offline">Offline</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Privacy Budgets Detail -->
+<div class="card-soc" style="margin-bottom:24px;">
+    <div class="card-header-soc">
+        <div class="card-title"><i class="bi bi-lock-fill"></i> Differential Privacy Budgets</div>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="table-soc">
+            <thead>
+                <tr><th>Node</th><th>Epsilon (ε)</th><th>Delta (δ)</th><th>Max ε</th><th>Budget Used</th><th>Noise σ</th><th>Rounds</th></tr>
+            </thead>
+            <tbody>
+                {% for b in budgets %}
+                <tr>
+                    <td style="font-weight:500;">{{ b.node.name }}</td>
+                    <td class="mono">{{ b.epsilon }}</td>
+                    <td class="mono">{{ b.delta }}</td>
+                    <td class="mono">{{ b.max_epsilon }}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div class="budget-bar" style="width:120px;">
+                                <div class="budget-bar-fill" style="width:{% widthratio b.epsilon b.max_epsilon 100 %}%;"></div>
+                            </div>
+                            <span class="mono" style="font-size:0.75rem;">{{ b.budget_remaining_pct }}%</span>
+                        </div>
+                    </td>
+                    <td class="mono">{{ b.noise_multiplier }}</td>
+                    <td class="mono">{{ b.rounds_consumed }}</td>
+                </tr>
+                {% empty %}
+                <tr><td style="font-weight:500;">SOC-Paris</td><td class="mono">2.30</td><td class="mono">1e-05</td><td class="mono">10.0</td>
+                    <td><div style="display:flex;align-items:center;gap:8px;"><div class="budget-bar" style="width:120px;"><div class="budget-bar-fill" style="width:23%;"></div></div><span class="mono" style="font-size:0.75rem;">77%</span></div></td>
+                    <td class="mono">1.1</td><td class="mono">12</td></tr>
+                <tr><td style="font-weight:500;">SOC-London</td><td class="mono">1.80</td><td class="mono">1e-05</td><td class="mono">10.0</td>
+                    <td><div style="display:flex;align-items:center;gap:8px;"><div class="budget-bar" style="width:120px;"><div class="budget-bar-fill" style="width:18%;"></div></div><span class="mono" style="font-size:0.75rem;">82%</span></div></td>
+                    <td class="mono">1.1</td><td class="mono">10</td></tr>
+                <tr><td style="font-weight:500;">SOC-NewYork</td><td class="mono">3.50</td><td class="mono">1e-05</td><td class="mono">10.0</td>
+                    <td><div style="display:flex;align-items:center;gap:8px;"><div class="budget-bar" style="width:120px;"><div class="budget-bar-fill" style="width:35%;"></div></div><span class="mono" style="font-size:0.75rem;">65%</span></div></td>
+                    <td class="mono">1.1</td><td class="mono">15</td></tr>
+                <tr><td style="font-weight:500;">SOC-Tokyo</td><td class="mono">1.20</td><td class="mono">1e-05</td><td class="mono">10.0</td>
+                    <td><div style="display:flex;align-items:center;gap:8px;"><div class="budget-bar" style="width:120px;"><div class="budget-bar-fill" style="width:12%;"></div></div><span class="mono" style="font-size:0.75rem;">88%</span></div></td>
+                    <td class="mono">1.1</td><td class="mono">8</td></tr>
+                <tr><td style="font-weight:500;">SOC-Sydney</td><td class="mono">0.90</td><td class="mono">1e-05</td><td class="mono">10.0</td>
+                    <td><div style="display:flex;align-items:center;gap:8px;"><div class="budget-bar" style="width:120px;"><div class="budget-bar-fill" style="width:9%;"></div></div><span class="mono" style="font-size:0.75rem;">91%</span></div></td>
+                    <td class="mono">1.1</td><td class="mono">6</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Round History -->
+<div class="card-soc">
+    <div class="card-header-soc">
+        <div class="card-title"><i class="bi bi-clock-history"></i> Training Round History</div>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="table-soc">
+            <thead>
+                <tr><th>Round</th><th>Status</th><th>Accuracy</th><th>Loss</th><th>Strategy</th><th>Nodes</th><th>Updates</th></tr>
+            </thead>
+            <tbody>
+                {% for r in round_history %}
+                <tr>
+                    <td class="mono">R{{ r.number }}</td>
+                    <td><span class="badge-soc badge-{% if r.status == 'completed' %}online{% elif r.status == 'in_progress' %}training{% elif r.status == 'failed' %}error{% else %}offline{% endif %}">{{ r.status|title }}</span></td>
+                    <td class="mono">{{ r.accuracy|default:"—" }}</td>
+                    <td class="mono">{{ r.loss|default:"—" }}</td>
+                    <td>{{ r.strategy|upper }}</td>
+                    <td>{{ r.nodes }}</td>
+                    <td>{{ r.updates }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('chart-privacy-budget');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ budget_labels|safe }},
+                datasets: [
+                    {
+                        label: 'ε Used',
+                        data: {{ budget_used|safe }},
+                        backgroundColor: 'rgba(251, 146, 60, 0.7)',
+                        borderColor: '#fb923c',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'ε Remaining',
+                        data: {{ budget_remaining|safe }},
+                        backgroundColor: 'rgba(0, 255, 136, 0.2)',
+                        borderColor: 'rgba(0, 255, 136, 0.5)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true },
+                    y: {
+                        stacked: true,
+                        title: { display: true, text: 'Epsilon (ε)' },
+                    },
+                },
+                plugins: {
+                    legend: { position: 'bottom' },
+                },
+            },
+        });
+    }
+});
+
+function triggerRound() {
+    const btn = document.getElementById('btn-trigger-round');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Running Round...';
+
+    fetch('/federation/api/trigger-round/', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-circle-fill"></i> Trigger New Round';
+            if (data.status === 'completed') {
+                alert(`Round ${data.round_number} completed!\nAccuracy: ${data.global_accuracy}`);
+                location.reload();
+            } else {
+                alert(`Round result: ${data.status}\n${data.message || ''}`);
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-circle-fill"></i> Trigger New Round';
+            console.error(err);
+        });
+}
+</script>
+{% endblock %}

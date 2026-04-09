@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Local Node{% endblock %}
+{% block page_title %}Local Node — Log Ingestion{% endblock %}
+
+{% block content %}
+<!-- Severity Summary -->
+<div class="metric-grid">
+    <div class="metric-card accent-red">
+        <div class="metric-label">Critical Events</div>
+        <div class="metric-value text-accent-red" data-target="{{ severity_counts.critical }}">0</div>
+        <div class="metric-icon"><i class="bi bi-exclamation-octagon-fill"></i></div>
+    </div>
+    <div class="metric-card accent-orange">
+        <div class="metric-label">High Severity</div>
+        <div class="metric-value text-accent-orange" data-target="{{ severity_counts.high }}">0</div>
+        <div class="metric-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+    </div>
+    <div class="metric-card accent-yellow">
+        <div class="metric-label">Medium Severity</div>
+        <div class="metric-value" data-target="{{ severity_counts.medium }}">0</div>
+        <div class="metric-icon"><i class="bi bi-info-circle-fill"></i></div>
+    </div>
+    <div class="metric-card accent-green">
+        <div class="metric-label">Low Severity</div>
+        <div class="metric-value text-accent-green" data-target="{{ severity_counts.low }}">0</div>
+        <div class="metric-icon"><i class="bi bi-check-circle-fill"></i></div>
+    </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:24px;">
+    <!-- Live Log Stream -->
+    <div class="card-soc">
+        <div class="card-header-soc">
+            <div class="card-title">
+                <i class="bi bi-terminal-fill"></i> Live Log Stream
+                <span class="badge-soc badge-online" style="margin-left:8px;">
+                    <i class="bi bi-circle-fill" style="font-size:5px;"></i> LIVE
+                </span>
+            </div>
+            <button class="btn-soc btn-soc-primary" id="btn-simulate" onclick="simulateIngestion()">
+                <i class="bi bi-play-fill"></i> Simulate Ingestion
+            </button>
+        </div>
+        <div class="log-stream" id="log-stream">
+            {% if demo_entries %}
+                {% for entry in demo_entries %}
+                <div class="log-line">
+                    <span class="log-ts">{{ entry.timestamp|date:"Y-m-d H:i:s" }}</span>
+                    <span class="log-src">{{ entry.source_ip }}</span>
+                    <span class="log-dst">{{ entry.destination_ip }}</span>
+                    <span class="log-sev {{ entry.severity }}">{{ entry.severity|upper }}</span>
+                    <span class="log-event">{{ entry.event_type }}</span>
+                </div>
+                {% endfor %}
+            {% elif recent_logs %}
+                {% for log in recent_logs %}
+                <div class="log-line">
+                    <span class="log-ts">{{ log.timestamp|date:"Y-m-d H:i:s" }}</span>
+                    <span class="log-src">{{ log.source_ip }}</span>
+                    <span class="log-dst">{{ log.destination_ip }}</span>
+                    <span class="log-sev {{ log.severity }}">{{ log.severity|upper }}</span>
+                    <span class="log-event">{{ log.event_type }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="color:var(--text-muted);text-align:center;padding:40px;">
+                    Awaiting log data... Click <strong>Simulate Ingestion</strong> to generate events.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Severity Distribution + Sources -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+        <div class="card-soc">
+            <div class="card-header-soc">
+                <div class="card-title"><i class="bi bi-pie-chart-fill"></i> Severity Distribution</div>
+            </div>
+            <div class="chart-container" style="height:220px;">
+                <canvas id="chart-severity"></canvas>
+            </div>
+        </div>
+        <div class="card-soc">
+            <div class="card-header-soc">
+                <div class="card-title"><i class="bi bi-hdd-network-fill"></i> Log Sources</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                {% for source in sources %}
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="status-dot {% if source.is_active %}status-online{% else %}status-offline{% endif %}" style="display:inline-block;"></span>
+                        <span style="font-size:0.85rem;font-weight:500;">{{ source.name }}</span>
+                    </div>
+                    <span class="badge-soc badge-type">{{ source.get_source_type_display }}</span>
+                </div>
+                {% empty %}
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="status-dot status-online" style="display:inline-block;"></span>
+                        <span style="font-size:0.85rem;font-weight:500;">Palo Alto PA-5260</span>
+                    </div>
+                    <span class="badge-soc badge-type">Firewall</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="status-dot status-online" style="display:inline-block;"></span>
+                        <span style="font-size:0.85rem;font-weight:500;">Suricata IDS Cluster</span>
+                    </div>
+                    <span class="badge-soc badge-type">IDS</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="status-dot status-online" style="display:inline-block;"></span>
+                        <span style="font-size:0.85rem;font-weight:500;">CrowdStrike Falcon</span>
+                    </div>
+                    <span class="badge-soc badge-type">Endpoint</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-input);border-radius:var(--border-radius-sm);">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="status-dot status-offline" style="display:inline-block;"></span>
+                        <span style="font-size:0.85rem;font-weight:500;">AWS CloudTrail</span>
+                    </div>
+                    <span class="badge-soc badge-type">Cloud</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Training Status -->
+<div class="card-soc">
+    <div class="card-header-soc">
+        <div class="card-title"><i class="bi bi-cpu-fill"></i> Local Training Status</div>
+        <span class="badge-soc badge-training"><i class="bi bi-circle-fill" style="font-size:5px;"></i> Idle</span>
+    </div>
+    <div class="grid-3">
+        <div style="text-align:center;padding:16px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Local Samples</div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--accent-blue);font-family:var(--font-mono);">12,400</div>
+        </div>
+        <div style="text-align:center;padding:16px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Last Training Round</div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--accent-green);font-family:var(--font-mono);">R15</div>
+        </div>
+        <div style="text-align:center;padding:16px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Local Accuracy</div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--accent-purple);font-family:var(--font-mono);">95.12%</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Severity doughnut chart
+    const sevData = {{ severity_json|safe }};
+    const ctxSev = document.getElementById('chart-severity');
+    if (ctxSev) {
+        new Chart(ctxSev, {
+            type: 'doughnut',
+            data: {
+                labels: ['Critical', 'High', 'Medium', 'Low'],
+                datasets: [{
+                    data: [sevData.critical, sevData.high, sevData.medium, sevData.low],
+                    backgroundColor: ['#ef4444', '#fb923c', '#fbbf24', '#22c55e'],
+                    borderColor: '#131a2b',
+                    borderWidth: 3,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: { position: 'bottom' },
+                },
+            },
+        });
+    }
+
+    // Auto-refresh log stream every 5 seconds
+    setInterval(function() {
+        fetch('/logs/api/stream/?limit=5')
+            .then(r => r.json())
+            .then(data => {
+                if (data.logs) {
+                    data.logs.forEach(entry => appendLogLine('log-stream', entry));
+                }
+            })
+            .catch(() => {});
+    }, 5000);
+});
+
+function simulateIngestion() {
+    const btn = document.getElementById('btn-simulate');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Ingesting...';
+    fetch('/logs/api/simulate/?count=15')
+        .then(r => r.json())
+        .then(data => {
+            if (data.sample) {
+                data.sample.forEach(entry => appendLogLine('log-stream', entry));
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-fill"></i> Simulate Ingestion';
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-fill"></i> Simulate Ingestion';
+        });
+}
+</script>
+{% endblock %}
